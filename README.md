@@ -3,7 +3,12 @@
 A simple Text-to-Speech app for reading documents aloud. Built with Flutter.
 
 ## 📱 Features
-- Upload Word documents (.docx) and text files (.txt)
+- **Multiple File Formats Support:**
+  - Word documents (.docx)
+  - PDF files (.pdf)
+  - Text files (.txt)
+  - Markdown files (.md)
+  - Images with text (OCR)
 - Extract text from documents
 - Read text aloud using Text-to-Speech
 - Play, Pause, Stop controls
@@ -43,6 +48,8 @@ flutter run
 |---------|---------|
 | file_picker | Select files from device |
 | docx_to_text | Extract text from Word docs |
+| syncfusion_flutter_pdf | Extract text from PDF files |
+| google_ml_kit | OCR - Extract text from images |
 | flutter_tts | Text-to-Speech functionality |
 | provider | State management |
 | shared_preferences | Local storage |

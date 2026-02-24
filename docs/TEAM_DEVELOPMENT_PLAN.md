@@ -2,10 +2,22 @@
 
 ## 📋 Project Information
 - **App Name:** Audio Reader
-- **Purpose:** Text-to-Speech app for reading documents aloud
+- **Purpose:** Text-to-Speech app for reading multiple file formats aloud
 - **Team Size:** 4 Members
 - **Total Phases:** 20 (5 phases per member)
-- **Complexity Level:** Simple (No complex state management)
+- **Complexity Level:** Simple to Medium
+
+---
+
+## 📁 Supported File Formats
+
+| Format | Extension | Package Used |
+|--------|-----------|--------------|
+| Word Document | .docx | docx_to_text |
+| PDF | .pdf | syncfusion_flutter_pdf |
+| Plain Text | .txt | dart:io (built-in) |
+| Markdown | .md | dart:io (built-in) |
+| Images (OCR) | .jpg, .png | google_mlkit_text_recognition |
 
 ---
 
@@ -13,16 +25,16 @@
 
 | Member | Phases Assigned | Focus Area |
 |--------|-----------------|------------|
-| **Member 1** | 1, 5, 9, 13, 17 | Structure, State, TTS Core, Navigation, File Formats |
-| **Member 2** | 2, 6, 10, 14, 18 | App Shell, Buttons, Audio Controls, Settings UI, TTS Settings |
-| **Member 3** | 3, 7, 11, 15, 19 | Text Widget, File Picker, Styling, Provider, Dark Mode |
-| **Member 4** | 4, 8, 12, 16, 20 | Layouts, Text Extract, Custom Widgets, Storage, Testing |
+| **Member 1** | 1, 5, 9, 13, 17 | Structure, State, TTS, Navigation, PDF Support |
+| **Member 2** | 2, 6, 10, 14, 18 | App Shell, Buttons, Audio Controls, Settings UI, Image OCR |
+| **Member 3** | 3, 7, 11, 15, 19 | Widgets, File Picker, Styling, Provider, Dark Mode |
+| **Member 4** | 4, 8, 12, 16, 20 | Layouts, DOCX Extract, Custom Widgets, Storage, Testing |
 
 ---
 
 ## 📊 Difficulty Balance
 
-Each member gets: **2 Easy + 2 Medium + 1 Slightly Challenging**
+Each member gets: **2 Easy + 2 Medium + 1 Challenging**
 
 | Member | Easy | Medium | Challenging |
 |--------|------|--------|-------------|
@@ -51,41 +63,15 @@ After each phase, the app should run without errors!
 
 **What to do:**
 1. Create folder structure inside `lib/`:
-   - `lib/screens/` - for screen files
-   - `lib/widgets/` - for reusable widgets
-   - `lib/services/` - for TTS, file services
-   - `lib/models/` - for data classes
-   - `lib/utils/` - for helper functions
+   - `lib/screens/`
+   - `lib/widgets/`
+   - `lib/services/`
+   - `lib/models/`
+   - `lib/utils/`
 
-2. Clean `main.dart` to minimal code:
-```dart
-import 'package:flutter/material.dart';
+2. Clean `main.dart` to minimal "Hello Audio Reader" code
 
-void main() {
-  runApp(const AudioReaderApp());
-}
-
-class AudioReaderApp extends StatelessWidget {
-  const AudioReaderApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Audio Reader',
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Audio Reader'),
-        ),
-        body: const Center(
-          child: Text('Hello Audio Reader!'),
-        ),
-      ),
-    );
-  }
-}
-```
-
-**App Status After:** App runs with "Hello Audio Reader" text
+**App Status After:** App runs with basic text
 
 ---
 
@@ -95,96 +81,30 @@ class AudioReaderApp extends StatelessWidget {
 **Prerequisite:** Phase 1
 
 **What to do:**
-1. Create proper MaterialApp setup
-2. Remove debug banner (`debugShowCheckedModeBanner: false`)
+1. Setup MaterialApp with `debugShowCheckedModeBanner: false`
+2. Create HomePage widget
 3. Add AppBar with centered title
-4. Create separate HomePage widget class
 
-```dart
-import 'package:flutter/material.dart';
-
-void main() {
-  runApp(const AudioReaderApp());
-}
-
-class AudioReaderApp extends StatelessWidget {
-  const AudioReaderApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Audio Reader',
-      debugShowCheckedModeBanner: false,
-      home: const HomePage(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Audio Reader'),
-        centerTitle: true,
-      ),
-      body: const Center(
-        child: Text(
-          'Welcome to Audio Reader',
-          style: TextStyle(fontSize: 20),
-        ),
-      ),
-    );
-  }
-}
-```
-
-**App Status After:** App shows AppBar and welcome text
+**App Status After:** App shows AppBar and body
 
 ---
 
-### 🟢 PHASE 3 - Basic Widgets (Text & Container)
+### 🟢 PHASE 3 - Basic Widgets & Layout
 **Assigned to:** Member 3  
 **Difficulty:** ⭐ Easy  
 **Prerequisite:** Phase 2
 
 **What to do:**
-1. Add multiple Text widgets with different styles
-2. Use Container to wrap content
-3. Add Column to arrange texts vertically
+1. Add title Text "Upload a File"
+2. Add subtitle showing supported formats
+3. Add file type icons row (Word, PDF, TXT, MD, Image)
+4. Add "No file selected" text
 
-**Update HomePage body:**
-```dart
-body: Center(
-  child: Container(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'Upload a Document',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-        ),
-        const Text(
-          'Select a Word document to read aloud',
-          style: TextStyle(fontSize: 16),
-        ),
-        const Text(
-          'No file selected',
-          style: TextStyle(fontSize: 14, fontStyle: FontStyle.italic),
-        ),
-      ],
-    ),
-  ),
-),
-```
-
-**App Status After:** App shows three text lines
+**App Status After:** App shows file type icons and text
 
 ---
 
-### 🟢 PHASE 4 - Layout Widgets (Row & Column)
+### 🟢 PHASE 4 - Layout & Spacing
 **Assigned to:** Member 4  
 **Difficulty:** ⭐ Easy  
 **Prerequisite:** Phase 3
@@ -192,32 +112,28 @@ body: Center(
 **What to do:**
 1. Add Padding around content
 2. Add SizedBox for spacing
-3. Add Container with border for file info
-4. Add Row for button placeholders at bottom
+3. Add Card for text display area
+4. Add Row for audio control buttons (placeholder)
 
-**Concepts:** `Padding`, `SizedBox`, `Column`, `Row`, `BoxDecoration`
-
-**App Status After:** Properly spaced layout with placeholders
+**App Status After:** Complete basic layout
 
 ---
 
-### 🟢 PHASE 5 - Stateful Widget Conversion
+### 🟢 PHASE 5 - Stateful Widget
 **Assigned to:** Member 1  
 **Difficulty:** ⭐ Easy  
 **Prerequisite:** Phase 4
 
 **What to do:**
 1. Create `lib/screens/home_screen.dart`
-2. Move HomePage to this file
+2. Move HomePage to separate file
 3. Convert to StatefulWidget
 4. Add state variables:
    - `String selectedFileName = 'No file selected';`
    - `String extractedText = '';`
-5. Update main.dart to import home_screen.dart
+   - `String fileType = '';`
 
-**Concepts:** `StatefulWidget`, `State`, state variables, file imports
-
-**App Status After:** Same UI but with organized code structure
+**App Status After:** Code organized with state variables
 
 ---
 
@@ -227,100 +143,59 @@ body: Center(
 **Prerequisite:** Phase 5
 
 **What to do:**
-1. Add ElevatedButton for "Select File"
-2. Add FloatingActionButton for Play/Stop
-3. Add `isPlaying` state variable
-4. Implement onPressed with setState
+1. Add "Select File" ElevatedButton
+2. Add Play ElevatedButton with icon
+3. Add Stop ElevatedButton with icon
+4. Add `isPlaying` state variable
+5. Use setState to update UI on button press (test with dummy data)
 
-```dart
-ElevatedButton.icon(
-  onPressed: () {
-    setState(() {
-      selectedFileName = 'sample.docx';
-      extractedText = 'Sample text for testing...';
-    });
-  },
-  icon: const Icon(Icons.upload_file),
-  label: const Text('Select Word File'),
-),
-```
-
-**Concepts:** `ElevatedButton`, `FloatingActionButton`, `onPressed`, `setState`
-
-**App Status After:** Clicking button updates text on screen
+**App Status After:** Buttons work with dummy data
 
 ---
 
 ### 🟢 PHASE 7 - File Picker Integration
 **Assigned to:** Member 3  
-**Difficulty:** ⭐⭐ Easy-Medium  
+**Difficulty:** ⭐⭐ Medium  
 **Prerequisite:** Phase 6
 
 **What to do:**
-1. Add to pubspec.yaml:
-   ```yaml
-   dependencies:
-     file_picker: ^8.0.0
-   ```
+1. Add `file_picker` package to pubspec.yaml
 2. Run `flutter pub get`
-3. Implement file picking:
+3. Implement file picking for multiple types:
 
 ```dart
-import 'package:file_picker/file_picker.dart';
-
-Future<void> pickFile() async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
-    type: FileType.custom,
-    allowedExtensions: ['docx'],
-  );
-  
-  if (result != null) {
-    setState(() {
-      selectedFileName = result.files.first.name;
-    });
-  }
-}
+FilePickerResult? result = await FilePicker.platform.pickFiles(
+  type: FileType.custom,
+  allowedExtensions: ['docx', 'pdf', 'txt', 'md', 'jpg', 'png', 'jpeg'],
+);
 ```
 
-**Concepts:** Packages, pubspec.yaml, async/await, Future
+4. Detect file type from extension
+5. Display selected file name
 
-**App Status After:** User can select .docx file and see filename
+**App Status After:** User can select files of any supported type
 
 ---
 
-### 🟡 PHASE 8 - Text Extraction from DOCX
+### 🟡 PHASE 8 - DOCX Text Extraction
 **Assigned to:** Member 4  
 **Difficulty:** ⭐⭐ Medium  
 **Prerequisite:** Phase 7
 
 **What to do:**
-1. Add to pubspec.yaml:
-   ```yaml
-   dependencies:
-     docx_to_text: ^1.0.1
-   ```
-2. Extract text from selected file:
+1. Add `docx_to_text` package
+2. Extract text from .docx files:
 
 ```dart
-import 'dart:io';
-import 'package:docx_to_text/docx_to_text.dart';
-
-// Inside pickFile function, after getting result:
-if (result != null && result.files.first.path != null) {
-  File file = File(result.files.first.path!);
-  final bytes = await file.readAsBytes();
-  String text = docxToText(bytes);
-  
-  setState(() {
-    selectedFileName = result.files.first.name;
-    extractedText = text;
-  });
+if (fileName.endsWith('.docx')) {
+  final bytes = await File(path).readAsBytes();
+  extractedText = docxToText(bytes);
 }
 ```
 
-**Concepts:** File reading, bytes, docx parsing
+3. Display extracted text in Card
 
-**App Status After:** Selected document text is displayed
+**App Status After:** App can read Word documents
 
 ---
 
@@ -330,68 +205,47 @@ if (result != null && result.files.first.path != null) {
 **Prerequisite:** Phase 8
 
 **What to do:**
-1. Add to pubspec.yaml:
-   ```yaml
-   dependencies:
-     flutter_tts: ^3.8.5
-   ```
-2. Initialize TTS and implement speak:
+1. Add `flutter_tts` package
+2. Initialize TTS in initState
+3. Implement speak() function
+4. Connect to Play button
 
 ```dart
-import 'package:flutter_tts/flutter_tts.dart';
-
-// In state class:
 final FlutterTts flutterTts = FlutterTts();
 
-@override
-void initState() {
-  super.initState();
-  flutterTts.setLanguage("en-US");
-  flutterTts.setSpeechRate(0.5);
-}
-
 Future<void> speak() async {
-  if (extractedText.isNotEmpty) {
-    await flutterTts.speak(extractedText);
-  }
+  await flutterTts.setLanguage("en-US");
+  await flutterTts.speak(extractedText);
 }
 ```
 
-**Concepts:** FlutterTts, initState, speak()
-
-**App Status After:** App reads text aloud when button pressed
+**App Status After:** App reads Word docs aloud
 
 ---
 
-### 🟡 PHASE 10 - Audio Controls (Play/Pause/Stop)
+### 🟡 PHASE 10 - Audio Controls
 **Assigned to:** Member 2  
 **Difficulty:** ⭐⭐ Medium  
 **Prerequisite:** Phase 9
 
 **What to do:**
-1. Add play/pause toggle:
+1. Implement play/pause toggle
+2. Implement stop function
+3. Update button icons based on state
+4. Add TTS completion callback
+
 ```dart
 Future<void> togglePlayPause() async {
   if (isPlaying) {
     await flutterTts.pause();
-    setState(() => isPlaying = false);
   } else {
     await flutterTts.speak(extractedText);
-    setState(() => isPlaying = true);
   }
-}
-
-Future<void> stop() async {
-  await flutterTts.stop();
-  setState(() => isPlaying = false);
+  setState(() => isPlaying = !isPlaying);
 }
 ```
 
-2. Update button icons based on state
-
-**Concepts:** pause(), stop(), state toggling
-
-**App Status After:** Working Play, Pause, Stop buttons
+**App Status After:** Full audio controls working
 
 ---
 
@@ -401,54 +255,33 @@ Future<void> stop() async {
 **Prerequisite:** Phase 10
 
 **What to do:**
-1. Add theme in MaterialApp:
-```dart
-theme: ThemeData(
-  primarySwatch: Colors.blue,
-  appBarTheme: const AppBarTheme(
-    backgroundColor: Colors.blue,
-    foregroundColor: Colors.white,
-  ),
-),
-```
+1. Add ThemeData to MaterialApp
+2. Style AppBar with colors
+3. Style buttons
+4. Style Card with proper colors
+5. Add colors to file type icons
 
-2. Style containers with colors and borders
-3. Add proper padding and margins
-
-**Concepts:** ThemeData, Colors, BoxDecoration
-
-**App Status After:** App looks visually appealing
+**App Status After:** App looks polished
 
 ---
 
-### 🟡 PHASE 12 - Custom Widgets
+### 🟡 PHASE 12 - TXT & MD File Support
 **Assigned to:** Member 4  
 **Difficulty:** ⭐⭐ Medium  
 **Prerequisite:** Phase 11
 
 **What to do:**
-1. Create `lib/widgets/file_info_card.dart`:
+1. Add support for .txt files:
 ```dart
-class FileInfoCard extends StatelessWidget {
-  final String fileName;
-  
-  const FileInfoCard({super.key, required this.fileName});
-  
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      // Card UI here
-    );
-  }
+if (fileName.endsWith('.txt') || fileName.endsWith('.md')) {
+  extractedText = await File(path).readAsString();
 }
 ```
 
-2. Create `lib/widgets/audio_control_button.dart`
-3. Use these widgets in home_screen.dart
+2. Both TXT and MD are plain text, read directly
+3. Test with sample files
 
-**Concepts:** Custom widgets, constructor parameters
-
-**App Status After:** Same functionality with cleaner code
+**App Status After:** App reads TXT and MD files
 
 ---
 
@@ -458,24 +291,10 @@ class FileInfoCard extends StatelessWidget {
 **Prerequisite:** Phase 12
 
 **What to do:**
-1. Create `lib/screens/settings_screen.dart` (empty scaffold)
+1. Create `lib/screens/settings_screen.dart`
 2. Add settings icon in AppBar
-3. Implement navigation:
-
-```dart
-// In AppBar actions:
-IconButton(
-  icon: const Icon(Icons.settings),
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const SettingsScreen()),
-    );
-  },
-),
-```
-
-**Concepts:** Navigator.push, MaterialPageRoute
+3. Implement Navigator.push to settings
+4. Add back button
 
 **App Status After:** Can navigate to Settings and back
 
@@ -487,162 +306,124 @@ IconButton(
 **Prerequisite:** Phase 13
 
 **What to do:**
-1. Add Slider for speech rate
-2. Add Switch for dark mode toggle
-3. Layout with ListTile:
-
-```dart
-ListTile(
-  title: const Text('Speech Rate'),
-  subtitle: Slider(
-    value: speechRate,
-    min: 0.25,
-    max: 1.5,
-    onChanged: (value) {
-      setState(() => speechRate = value);
-    },
-  ),
-),
-```
-
-**Concepts:** Slider, Switch, ListTile
+1. Add Slider for speech rate (0.25 to 1.5)
+2. Add Slider for pitch (0.5 to 2.0)
+3. Add Switch for dark mode
+4. Use ListTile for each setting
 
 **App Status After:** Settings screen with controls
 
 ---
 
-### 🟡 PHASE 15 - Simple State Sharing (Provider)
+### 🟡 PHASE 15 - State Management (Provider)
 **Assigned to:** Member 3  
-**Difficulty:** ⭐⭐⭐ Medium-Challenging  
+**Difficulty:** ⭐⭐⭐ Challenging  
 **Prerequisite:** Phase 14
 
 **What to do:**
-1. Add to pubspec.yaml:
-   ```yaml
-   dependencies:
-     provider: ^6.1.1
-   ```
+1. Add `provider` package
 2. Create `lib/utils/settings_provider.dart`:
-```dart
-import 'package:flutter/material.dart';
 
+```dart
 class SettingsProvider extends ChangeNotifier {
   double _speechRate = 0.5;
+  double _pitch = 1.0;
   bool _isDarkMode = false;
   
-  double get speechRate => _speechRate;
-  bool get isDarkMode => _isDarkMode;
-  
-  void setSpeechRate(double rate) {
-    _speechRate = rate;
-    notifyListeners();
-  }
-  
-  void toggleDarkMode() {
-    _isDarkMode = !_isDarkMode;
-    notifyListeners();
-  }
+  // Getters and setters with notifyListeners()
 }
 ```
 
-3. Wrap app with ChangeNotifierProvider in main.dart
+3. Wrap app with ChangeNotifierProvider
+4. Connect settings UI to provider
 
-**Concepts:** Provider, ChangeNotifier, notifyListeners
-
-**App Status After:** Settings changes reflect across app
+**App Status After:** Settings work across app
 
 ---
 
 ### 🟡 PHASE 16 - Local Storage
 **Assigned to:** Member 4  
-**Difficulty:** ⭐⭐⭐ Medium-Challenging  
+**Difficulty:** ⭐⭐⭐ Challenging  
 **Prerequisite:** Phase 15
 
 **What to do:**
-1. Add to pubspec.yaml:
-   ```yaml
-   dependencies:
-     shared_preferences: ^2.2.2
-   ```
-2. Save and load settings:
+1. Add `shared_preferences` package
+2. Save settings to storage
+3. Load settings on app start
+
 ```dart
-import 'package:shared_preferences/shared_preferences.dart';
-
-Future<void> saveSettings() async {
-  final prefs = await SharedPreferences.getInstance();
-  await prefs.setDouble('speechRate', _speechRate);
-  await prefs.setBool('isDarkMode', _isDarkMode);
-}
-
 Future<void> loadSettings() async {
   final prefs = await SharedPreferences.getInstance();
   _speechRate = prefs.getDouble('speechRate') ?? 0.5;
   _isDarkMode = prefs.getBool('isDarkMode') ?? false;
-  notifyListeners();
 }
 ```
 
-**Concepts:** SharedPreferences, async storage
-
-**App Status After:** Settings persist after app restart
+**App Status After:** Settings persist after restart
 
 ---
 
-### 🟠 PHASE 17 - Multiple File Formats
+### 🟠 PHASE 17 - PDF File Support
 **Assigned to:** Member 1  
 **Difficulty:** ⭐⭐⭐ Challenging  
 **Prerequisite:** Phase 16
 
 **What to do:**
-1. Support .txt files:
-```dart
-allowedExtensions: ['docx', 'txt'],
+1. Add `syncfusion_flutter_pdf` package
+2. Extract text from PDF:
 
-// In file processing:
-if (fileName.endsWith('.txt')) {
-  extractedText = await File(path).readAsString();
-} else if (fileName.endsWith('.docx')) {
-  // existing docx code
+```dart
+import 'package:syncfusion_flutter_pdf/pdf.dart';
+
+if (fileName.endsWith('.pdf')) {
+  final bytes = await File(path).readAsBytes();
+  PdfDocument document = PdfDocument(inputBytes: bytes);
+  String text = PdfTextExtractor(document).extractText();
+  document.dispose();
+  extractedText = text;
 }
 ```
 
-2. Show appropriate messages for unsupported files
+3. Handle multi-page PDFs
 
-**Concepts:** File extensions, conditional logic
-
-**App Status After:** App reads both .docx and .txt files
+**App Status After:** App reads PDF files
 
 ---
 
-### 🟠 PHASE 18 - TTS Settings Integration
+### 🟠 PHASE 18 - Image OCR Support
 **Assigned to:** Member 2  
 **Difficulty:** ⭐⭐⭐ Challenging  
 **Prerequisite:** Phase 17
 
 **What to do:**
-1. Apply speech rate from provider to TTS
-2. Add pitch control in settings
-3. Listen to provider changes:
+1. Add `google_mlkit_text_recognition` package
+2. Extract text from images:
 
 ```dart
-final settings = Provider.of<SettingsProvider>(context);
-flutterTts.setSpeechRate(settings.speechRate);
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+
+if (fileName.endsWith('.jpg') || fileName.endsWith('.png')) {
+  final inputImage = InputImage.fromFilePath(path);
+  final textRecognizer = TextRecognizer();
+  final RecognizedText result = await textRecognizer.processImage(inputImage);
+  extractedText = result.text;
+  textRecognizer.close();
+}
 ```
 
-**Concepts:** Provider integration with TTS
-
-**App Status After:** TTS uses settings from Settings screen
+**App Status After:** App reads text from images
 
 ---
 
-### 🟠 PHASE 19 - Dark Mode Implementation
+### 🟠 PHASE 19 - Dark Mode
 **Assigned to:** Member 3  
 **Difficulty:** ⭐⭐⭐ Challenging  
 **Prerequisite:** Phase 18
 
 **What to do:**
-1. Create light and dark themes
-2. Switch based on provider:
+1. Create light theme
+2. Create dark theme
+3. Switch based on provider setting:
 
 ```dart
 MaterialApp(
@@ -652,27 +433,28 @@ MaterialApp(
 )
 ```
 
-**Concepts:** ThemeData, ThemeMode, dynamic theming
-
-**App Status After:** App has working dark/light mode toggle
+**App Status After:** Dark/Light mode toggle works
 
 ---
 
-### 🟠 PHASE 20 - Final Testing & Polish
+### 🟠 PHASE 20 - Testing & Final Polish
 **Assigned to:** Member 4  
 **Difficulty:** ⭐⭐⭐ Challenging  
 **Prerequisite:** Phase 19
 
 **What to do:**
-1. Test all features work together
+1. Test all file formats:
+   - [ ] .docx files
+   - [ ] .pdf files
+   - [ ] .txt files
+   - [ ] .md files
+   - [ ] .jpg/.png images
 2. Fix any bugs
 3. Add loading indicators
-4. Update README.md
+4. Update README with screenshots
 5. Build release APK: `flutter build apk`
 
-**Concepts:** Testing, debugging, APK build
-
-**App Status After:** Complete, polished, production-ready app!
+**App Status After:** Complete, production-ready app!
 
 ---
 
@@ -685,12 +467,11 @@ lib/
 │   ├── home_screen.dart
 │   └── settings_screen.dart
 ├── widgets/
-│   ├── file_info_card.dart
-│   └── audio_control_button.dart
+│   └── (optional custom widgets)
 ├── services/
-│   └── (empty - kept simple)
+│   └── (optional service files)
 ├── models/
-│   └── (empty - kept simple)
+│   └── (optional data models)
 └── utils/
     └── settings_provider.dart
 ```
@@ -703,12 +484,33 @@ lib/
 dependencies:
   flutter:
     sdk: flutter
-  file_picker: ^8.0.0        # Phase 7
-  docx_to_text: ^1.0.1       # Phase 8
-  flutter_tts: ^3.8.5        # Phase 9
-  provider: ^6.1.1           # Phase 15
-  shared_preferences: ^2.2.2  # Phase 16
+  
+  # File Selection
+  file_picker: ^8.0.0
+  
+  # Text Extraction
+  docx_to_text: ^1.0.1              # Word files
+  syncfusion_flutter_pdf: ^24.1.41   # PDF files
+  google_mlkit_text_recognition: ^0.11.0  # Image OCR
+  
+  # Text-to-Speech
+  flutter_tts: ^3.8.5
+  
+  # State & Storage
+  provider: ^6.1.1
+  shared_preferences: ^2.2.2
 ```
+
+---
+
+## ✅ File Format Support Summary
+
+| Phase | Format Added | Package |
+|-------|--------------|---------|
+| Phase 8 | .docx | docx_to_text |
+| Phase 12 | .txt, .md | dart:io (built-in) |
+| Phase 17 | .pdf | syncfusion_flutter_pdf |
+| Phase 18 | .jpg, .png | google_mlkit_text_recognition |
 
 ---
 
@@ -738,8 +540,11 @@ git push
 ## 📞 Help Resources
 
 - Flutter Docs: https://docs.flutter.dev/
-- Dart Docs: https://dart.dev/guides
 - Package Docs: https://pub.dev/
+- file_picker: https://pub.dev/packages/file_picker
+- flutter_tts: https://pub.dev/packages/flutter_tts
+- syncfusion_flutter_pdf: https://pub.dev/packages/syncfusion_flutter_pdf
+- google_mlkit_text_recognition: https://pub.dev/packages/google_mlkit_text_recognition
 
 ---
 
