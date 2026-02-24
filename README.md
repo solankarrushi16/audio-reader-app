@@ -1,2 +1,71 @@
-# audio-reader-app
-A simple Audio Reader app for accessible learning using Text-to-Speech
+# 🎧 Audio Reader App
+
+A simple Text-to-Speech app for reading documents aloud. Built with Flutter.
+
+## 📱 Features
+- Upload Word documents (.docx) and text files (.txt)
+- Extract text from documents
+- Read text aloud using Text-to-Speech
+- Play, Pause, Stop controls
+- Adjustable speech rate and pitch
+- Dark mode support
+- Settings persistence
+
+## 👥 Team Members
+
+| Member | Phases Assigned |
+|--------|-----------------|
+| Member 1 | 1, 5, 9, 13, 17 |
+| Member 2 | 2, 6, 10, 14, 18 |
+| Member 3 | 3, 7, 11, 15, 19 |
+| Member 4 | 4, 8, 12, 16, 20 |
+
+## 📋 Documentation
+
+See [docs/TEAM_DEVELOPMENT_PLAN.md](docs/TEAM_DEVELOPMENT_PLAN.md) for complete 20-phase development plan with detailed instructions for each phase.
+
+## 🚀 How to Run
+
+```bash
+# Navigate to project folder
+cd audio_reader_app
+
+# Get dependencies
+flutter pub get
+
+# Run the app
+flutter run
+```
+
+## 📦 Dependencies
+
+| Package | Purpose |
+|---------|---------|
+| file_picker | Select files from device |
+| docx_to_text | Extract text from Word docs |
+| flutter_tts | Text-to-Speech functionality |
+| provider | State management |
+| shared_preferences | Local storage |
+
+## 📁 Project Structure
+
+```
+lib/
+├── main.dart
+├── screens/
+│   ├── home_screen.dart
+│   └── settings_screen.dart
+├── widgets/
+│   ├── file_info_card.dart
+│   └── audio_control_button.dart
+└── utils/
+    └── settings_provider.dart
+```
+
+## 🔀 Git Workflow
+
+```bash
+git add .
+git commit -m "Phase X: Description"
+git push
+```
