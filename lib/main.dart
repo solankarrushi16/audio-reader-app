@@ -1,10 +1,4 @@
-import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter_tts/flutter_tts.dart';
-import 'package:docx_to_text/docx_to_text.dart';
 
 void main() {
   runApp(const AudioReaderApp());
@@ -15,213 +9,133 @@ class AudioReaderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
+      title: 'Audio Reader',
       debugShowCheckedModeBanner: false,
-      home: HomePage(),
+      home: const HomePage(),
     );
   }
 }
 
-class HomePage extends StatefulWidget {
+class HomePage extends StatelessWidget {
   const HomePage({super.key});
-
-  @override
-  State<HomePage> createState() => _HomePageState();
-}
-
-class _HomePageState extends State<HomePage> {
-  String selectedFileName = "No file selected";
-  String extractedText = "";
-  bool isPlaying = false;
-
-  final FlutterTts flutterTts = FlutterTts();
-
-  @override
-  void initState() {
-    super.initState();
-    flutterTts.setLanguage("en-US");
-    flutterTts.setSpeechRate(0.5);
-  }
-
-  /// Pick DOCX file and extract text
-  Future<void> pickFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['docx'],
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final file = result.files.first;
-        print("File picked: ${file.name}");
-
-        Uint8List? bytes;
-
-        // ✅ For web and other platforms, use bytes directly
-        if (file.bytes != null) {
-          bytes = file.bytes;
-          print("Using file.bytes - File size: ${bytes!.length} bytes");
-        }
-        // ✅ For mobile platforms, read from path
-        else if (file.path != null) {
-          File docxFile = File(file.path!);
-          bytes = await docxFile.readAsBytes();
-          print("Using file.path - File size: ${bytes.length} bytes");
-        }
-
-        if (bytes != null && bytes.isNotEmpty) {
-          // ✅ Extract text from DOCX
-          String text = docxToText(bytes);
-          print("Extracted text length: ${text.length}");
-
-          setState(() {
-            selectedFileName = file.name;
-            extractedText = text.isEmpty ? "File is empty or could not be extracted" : text;
-            isPlaying = false;
-          });
-        } else {
-          print("No bytes found for file");
-          setState(() {
-            selectedFileName = "Error: Could not read file";
-            extractedText = "";
-          });
-        }
-      } else {
-        print("No file selected or result is null");
-      }
-    } catch (e) {
-      print("Error picking file: $e");
-      setState(() {
-        selectedFileName = "Error: $e";
-        extractedText = "";
-      });
-    }
-  }
-
-  /// Speak extracted text or pause
-  Future<void> playAudio() async {
-    if (extractedText.isNotEmpty) {
-      if (isPlaying) {
-        await flutterTts.pause();
-        setState(() => isPlaying = false);
-      } else {
-        await flutterTts.speak(extractedText);
-        setState(() => isPlaying = true);
-      }
-    }
-  }
-
-  /// Stop speaking
-  Future<void> stopAudio() async {
-    await flutterTts.stop();
-    setState(() => isPlaying = false);
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // App Bar
       appBar: AppBar(
-        title: const Text("Audio Reader App"),
+        title: const Text('Audio Reader'),
         centerTitle: true,
-        elevation: 2,
       ),
+      
+      // Body
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
+            // Title
             const Text(
-              "Upload Word File (.docx)",
+              'Upload a File',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: pickFile,
-              icon: const Icon(Icons.upload_file),
-              label: const Text("Select Word File"),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
+            
+            const SizedBox(height: 10),
+            
+            // Subtitle - Supported formats
+            const Text(
+              'Supports: Word, PDF, Text, Markdown, Images',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(16),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.blue, width: 2),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.description, size: 40, color: Colors.blue),
-                  const SizedBox(height: 8),
-                  Text(
-                    selectedFileName,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
+            
+            const SizedBox(height: 20),
+            
+            // Supported File Types Icons Row
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(
+                  children: [
+                    Icon(Icons.description, size: 30, color: Colors.blue),
+                    Text('.docx', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                SizedBox(width: 15),
+                Column(
+                  children: [
+                    Icon(Icons.picture_as_pdf, size: 30, color: Colors.red),
+                    Text('.pdf', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                SizedBox(width: 15),
+                Column(
+                  children: [
+                    Icon(Icons.text_snippet, size: 30, color: Colors.green),
+                    Text('.txt', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                SizedBox(width: 15),
+                Column(
+                  children: [
+                    Icon(Icons.code, size: 30, color: Colors.purple),
+                    Text('.md', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+                SizedBox(width: 15),
+                Column(
+                  children: [
+                    Icon(Icons.image, size: 30, color: Colors.orange),
+                    Text('image', style: TextStyle(fontSize: 10)),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            if (extractedText.isNotEmpty) ...[
-              const Text(
-                "File Content:",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.blue, width: 1.5),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+            
+            const SizedBox(height: 20),
+            
+            // File Name
+            const Text('No file selected'),
+            
+            const SizedBox(height: 20),
+            
+            // Select File Button
+            ElevatedButton(
+              onPressed: () {},
+              child: const Text('Select File'),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Text Area
+            const Expanded(
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(15),
                   child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Text(
-                        extractedText,
-                        style: const TextStyle(fontSize: 14, height: 1.5),
-                      ),
-                    ),
+                    child: Text('Extracted text will appear here...'),
                   ),
                 ),
               ),
-            ] else ...[
-              Expanded(
-                child: Center(
-                  child: Text(
-                    selectedFileName == "No file selected"
-                        ? "Select a file to view content"
-                        : "Loading...",
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                ),
-              ),
-            ],
-            const SizedBox(height: 16),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Audio Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                FloatingActionButton(
-                  onPressed: extractedText.isNotEmpty ? playAudio : null,
-                  backgroundColor: isPlaying ? Colors.orange : Colors.blue,
-                  tooltip: isPlaying ? "Pause" : "Play",
-                  child: Icon(
-                    isPlaying ? Icons.pause : Icons.play_arrow,
-                    color: extractedText.isNotEmpty ? Colors.white : Colors.grey,
-                  ),
+                // Play Button
+                ElevatedButton(
+                  onPressed: () {},
+                  child: const Icon(Icons.play_arrow),
                 ),
-                const SizedBox(width: 16),
-                FloatingActionButton(
-                  onPressed: stopAudio,
-                  backgroundColor: Colors.red,
-                  tooltip: "Stop",
+                
+                const SizedBox(width: 20),
+                
+                // Stop Button
+                ElevatedButton(
+                  onPressed: () {},
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                   child: const Icon(Icons.stop),
                 ),
               ],
