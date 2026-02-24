@@ -25,8 +25,15 @@ class HomePage extends StatelessWidget {
     return Scaffold(
       // App Bar
       appBar: AppBar(
-        title: const Text('Audio Reader'),
+        title: const Text(
+          'Audio Reader',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
+        backgroundColor: Colors.blueAccent,
       ),
       
       // Body
@@ -117,7 +124,7 @@ class HomePage extends StatelessWidget {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
             
             // Audio Buttons
