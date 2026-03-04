@@ -1,6 +1,6 @@
-# 🎧 Audio Reader App
+# ReadAloud — Document to Speech App
 
-A simple Text-to-Speech app for reading documents aloud. Built with Flutter.
+A Flutter mobile app that reads TXT and PDF documents aloud using Text-to-Speech (TTS). Built with Flutter.
 
 ## 📱 Features
 - **Multiple File Formats Support:**

@@ -15,7 +15,7 @@ class AudioReaderApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Audio Reader',
+      title: 'ReadAloud',
       debugShowCheckedModeBanner: false,
       home: const HomePage(),
     );
@@ -48,10 +48,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
 
-    // This makes sure TTS fires the completion handler after each chunk
+    // awaitSpeakCompletion(true) is required so the completion handler fires correctly on Android
     tts.awaitSpeakCompletion(true);
 
-    // When one chunk finishes, automatically play the next one
     tts.setCompletionHandler(() async {
       if (currentChunk < chunks.length - 1) {
         currentChunk++;
@@ -72,29 +71,22 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  // Clean the extracted text so it sounds better when read aloud
+  // Cleans extracted text so it sounds natural when read aloud
   String cleanText(String raw) {
     String text = raw;
 
-    // Join words that were split across lines by a hyphen
+    // Rejoin words split across lines by a hyphen (e.g. "natu-\nral" → "natural")
     text = text.replaceAll(RegExp(r'-\n(?=[a-z])'), '');
 
-    // Replace single line breaks (mid-paragraph) with a space
     text = text.replaceAll(RegExp(r'(?<!\n)\n(?!\n)'), ' ');
-
-    // Replace double line breaks (paragraph gaps) with a pause marker
     text = text.replaceAll('\n\n', '.  ');
-
-    // Remove bullet points
     text = text.replaceAll(RegExp(r'^\s*[•\-–—]\s+', multiLine: true), '. ');
-
-    // Remove extra spaces
     text = text.replaceAll(RegExp(r'  +'), ' ');
 
     return text.trim();
   }
 
-  // Split text into parts of 3000 characters so TTS does not cut off
+  // TTS has a character limit — split into 3000-char chunks to avoid audio cutoff
   List<String> splitIntoChunks(String text) {
     List<String> result = [];
     int maxLength = 3000;
@@ -111,7 +103,6 @@ class _HomePageState extends State<HomePage> {
     return result;
   }
 
-  // Pick and read a TXT or PDF file
   Future<void> selectFile() async {
     setState(() => isLoading = true);
 
@@ -132,7 +123,6 @@ class _HomePageState extends State<HomePage> {
       String content = '';
       int pages = 0;
 
-      // Read TXT file
       if (ext == 'txt') {
         if (file.bytes != null) {
           content = String.fromCharCodes(file.bytes!);
@@ -141,7 +131,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
 
-      // Read PDF file
       else if (ext == 'pdf') {
         Uint8List? bytes;
         if (file.bytes != null) {
@@ -156,7 +145,7 @@ class _HomePageState extends State<HomePage> {
           PdfTextExtractor extractor = PdfTextExtractor(document);
 
           for (int i = 0; i < pages; i++) {
-            // Extract one page at a time to avoid duplication
+            // startPageIndex and endPageIndex must both be set to i — otherwise text duplicates
             content += extractor.extractText(
               startPageIndex: i,
               endPageIndex: i,
@@ -187,14 +176,12 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Get speech rate based on selected speed
   double getSpeed() {
     if (selectedSpeed == 'Slow') return 0.35;
     if (selectedSpeed == 'Fast') return 0.7;
-    return 0.5; // Normal
+    return 0.5;
   }
 
-  // Speak a specific chunk
   Future<void> speakChunk(int index) async {
     if (index >= chunks.length) return;
     setState(() { isPlaying = true; isPaused = false; });
@@ -205,7 +192,6 @@ class _HomePageState extends State<HomePage> {
     await tts.speak(chunks[index]);
   }
 
-  // Play from beginning
   Future<void> playAudio() async {
     if (chunks.isEmpty) return;
     await tts.stop();
@@ -213,7 +199,6 @@ class _HomePageState extends State<HomePage> {
     await speakChunk(0);
   }
 
-  // Pause or resume
   Future<void> pauseResume() async {
     if (isPaused) {
       await speakChunk(currentChunk);
@@ -223,7 +208,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // Stop audio
   Future<void> stopAudio() async {
     await tts.stop();
     setState(() { isPlaying = false; isPaused = false; currentChunk = 0; });
@@ -235,17 +219,15 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
 
-      // App Bar
       appBar: AppBar(
         title: const Text(
-          'Audio Reader',
+          'ReadAloud',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
       ),
 
-      // Side Drawer
       drawer: Drawer(
         child: ListView(
           children: [
@@ -266,13 +248,11 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
 
-      // Body
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
 
-            // Title
             const Text(
               'Upload a File',
               style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -284,7 +264,6 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 12),
 
-            // File format icons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -316,7 +295,6 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 14),
 
-            // File name and Select button
             Row(
               children: [
                 Expanded(
@@ -351,7 +329,6 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 12),
 
-            // Language dropdown
             DropdownButtonFormField<String>(
               initialValue: selectedLanguage,
               decoration: const InputDecoration(
@@ -370,11 +347,9 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 14),
 
-            // Speed selection - three circular buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Slow button
                 GestureDetector(
                   onTap: () => setState(() => selectedSpeed = 'Slow'),
                   child: Column(
@@ -417,7 +392,6 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(width: 20),
 
-                // Normal button
                 GestureDetector(
                   onTap: () => setState(() => selectedSpeed = 'Normal'),
                   child: Column(
@@ -460,7 +434,6 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(width: 20),
 
-                // Fast button
                 GestureDetector(
                   onTap: () => setState(() => selectedSpeed = 'Fast'),
                   child: Column(
@@ -505,7 +478,6 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 14),
 
-            // Extracted text area
             Expanded(
               child: Card(
                 child: Padding(
@@ -521,12 +493,9 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 14),
 
-            // Play, Pause, Stop buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-
-                // Play button
                 ElevatedButton.icon(
                   onPressed: hasText && !isPlaying ? playAudio : null,
                   icon: const Icon(Icons.play_arrow),
@@ -538,7 +507,6 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(width: 10),
 
-                // Pause / Resume button
                 ElevatedButton.icon(
                   onPressed: (isPlaying || isPaused) ? pauseResume : null,
                   icon: Icon(isPaused ? Icons.play_circle_outline : Icons.pause),
@@ -550,7 +518,6 @@ class _HomePageState extends State<HomePage> {
                 ),
                 const SizedBox(width: 10),
 
-                // Stop button
                 ElevatedButton.icon(
                   onPressed: (isPlaying || isPaused) ? stopAudio : null,
                   icon: const Icon(Icons.stop),
