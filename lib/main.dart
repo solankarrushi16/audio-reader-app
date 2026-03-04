@@ -1,4 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 void main() {
   runApp(const AudioReaderApp());
@@ -9,140 +13,168 @@ class AudioReaderApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Audio Reader',
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: const HomePage(),
+      home: HomePage(),
     );
   }
 }
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+
+  String fileName = "No file selected";
+  String extractedText = "Extracted text will appear here...";
+  String selectedLanguage = "en-US";
+
+  FlutterTts tts = FlutterTts();
+
+  Future<void> selectFile() async {
+
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['txt', 'pdf'],
+    );
+
+    if (result != null) {
+
+      File file = File(result.files.single.path!);
+      String extension = result.files.single.extension ?? "";
+      String content = "";
+
+      if (extension == "txt") {
+        content = await file.readAsString();
+      }
+
+      if (extension == "pdf") {
+        final bytes = file.readAsBytesSync();
+        PdfDocument document = PdfDocument(inputBytes: bytes);
+
+        for (int i = 0; i < document.pages.count; i++) {
+          content += PdfTextExtractor(document)
+              .extractText(startPageIndex: i);
+        }
+
+        document.dispose();
+      }
+
+      setState(() {
+        fileName = result.files.single.name;
+        extractedText = content.isEmpty
+            ? "No readable text found"
+            : content;
+      });
+    }
+  }
+
+  Future<void> playAudio() async {
+    await tts.stop();
+    await tts.setLanguage(selectedLanguage);
+    await tts.setSpeechRate(0.5);
+    await tts.speak(extractedText);
+  }
+
+  Future<void> stopAudio() async {
+    await tts.stop();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // App Bar
       appBar: AppBar(
-        title: const Text(
-          'Audio Reader',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Audio Reader'),
         centerTitle: true,
-        backgroundColor: Colors.blueAccent,
       ),
-      
-      // Body
+      drawer: Drawer(
+        child: ListView(
+          children: const [
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.lightGreen,
+              ),
+              child: Text(
+                "My Menu",
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            ListTile(
+              leading: Icon(Icons.home),
+              title: Text("Home"),
+            ),
+            ListTile(
+              leading: Icon(Icons.settings),
+              title: Text("Settings"),
+            ),
+          ],
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // Title
             const Text(
               'Upload a File',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            
-            const SizedBox(height: 10),
-            
-            // Subtitle - Supported formats
-            const Text(
-              'Supports: Word, PDF, Text, Markdown, Images',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+            const SizedBox(height: 15),
+            Text(fileName),
+            const SizedBox(height: 15),
+            ElevatedButton(
+              onPressed: selectFile,
+              child: const Text('Select TXT or PDF File'),
             ),
-            
             const SizedBox(height: 20),
-            
-            // Supported File Types Icons Row
-            const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Column(
-                  children: [
-                    Icon(Icons.description, size: 30, color: Colors.blue),
-                    Text('.docx', style: TextStyle(fontSize: 10)),
-                  ],
-                ),
-                SizedBox(width: 15),
-                Column(
-                  children: [
-                    Icon(Icons.picture_as_pdf, size: 30, color: Colors.red),
-                    Text('.pdf', style: TextStyle(fontSize: 10)),
-                  ],
-                ),
-                SizedBox(width: 15),
-                Column(
-                  children: [
-                    Icon(Icons.text_snippet, size: 30, color: Colors.green),
-                    Text('.txt', style: TextStyle(fontSize: 10)),
-                  ],
-                ),
-                SizedBox(width: 15),
-                Column(
-                  children: [
-                    Icon(Icons.code, size: 30, color: Colors.purple),
-                    Text('.md', style: TextStyle(fontSize: 10)),
-                  ],
-                ),
-                SizedBox(width: 15),
-                Column(
-                  children: [
-                    Icon(Icons.image, size: 30, color: Colors.orange),
-                    Text('image', style: TextStyle(fontSize: 10)),
-                  ],
+            DropdownButton<String>(
+              value: selectedLanguage,
+              items: const [
+                DropdownMenuItem(
+                  value: "en-US",
+                  child: Text("English"),
                 ),
               ],
+              onChanged: (value) {
+                setState(() {
+                  selectedLanguage = value!;
+                });
+              },
             ),
-            
             const SizedBox(height: 20),
-            
-            // File Name
-            const Text('No file selected'),
-            
-            const SizedBox(height: 20),
-            
-            // Select File Button
-            ElevatedButton(
-              onPressed: () {},
-              child: const Text('Select File'),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // Text Area
-            const Expanded(
+            Expanded(
               child: Card(
                 child: Padding(
-                  padding: EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(15),
                   child: SingleChildScrollView(
-                    child: Text('Extracted text will appear here...'),
+                    child: Text(extractedText),
                   ),
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-            
-            // Audio Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Play Button
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: playAudio,
                   child: const Icon(Icons.play_arrow),
                 ),
-                
                 const SizedBox(width: 20),
-                
-                // Stop Button
                 ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                  onPressed: stopAudio,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                  ),
                   child: const Icon(Icons.stop),
                 ),
               ],
