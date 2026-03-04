@@ -12,6 +12,9 @@
 .swiftpm/
 migrate_working_dir/
 
+# Local explanation/notes files — do not push to GitHub
+CODE_EXPLANATION.md
+
 # IntelliJ related
 *.iml
 *.ipr

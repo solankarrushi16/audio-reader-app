@@ -15,70 +15,13 @@ class AudioReaderApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Audio Reader',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.indigo),
-        useMaterial3: true,
-      ),
       home: const HomePage(),
     );
   }
 }
 
-// ─────────────────────────────────────────────
-//  Text cleaning utility
-// ─────────────────────────────────────────────
-String cleanTextForSpeech(String raw) {
-  // 1. Fix soft-hyphen line breaks from PDF ("hyphen-\nnated" → "hyphenated")
-  String text = raw.replaceAll(RegExp(r'-\n(?=[a-z])'), '');
-
-  // 2. Collapse multiple blank lines into a single paragraph break marker
-  text = text.replaceAll(RegExp(r'\n{3,}'), '\n\n');
-
-  // 3. Replace lone newlines (mid-paragraph) with a space
-  text = text.replaceAll(RegExp(r'(?<!\n)\n(?!\n)'), ' ');
-
-  // 4. Convert bullet/dash list items to sentences with a lead-in pause
-  text = text.replaceAll(RegExp(r'^\s*[•\-–—]\s+', multiLine: true), '. ');
-
-  // 5. Convert numbered list items (e.g. "1. ", "2) ") — keep as-is but ensure period+space
-  text = text.replaceAllMapped(RegExp(r'^\s*(\d+)[.)]\s+', multiLine: true), (m) => '${m[1]}. ');
-
-  // 6. Collapse multiple spaces
-  text = text.replaceAll(RegExp(r'  +'), ' ');
-
-  // 7. Paragraph double-newlines → period + two spaces (TTS natural pause)
-  text = text.replaceAll('\n\n', '.  ');
-
-  // 8. Remove special characters that TTS reads as noise (keep punctuation useful for pauses)
-  text = text.replaceAll(RegExp(r"[^\w\s.,;:!?()\-]"), ' ');
-
-  // 9. Ensure every sentence ending has a space after the period
-  text = text.replaceAll(RegExp(r'\.(?=[A-Z])'), '. ');
-
-  // 10. Final collapse of spaces again after replacements
-  text = text.replaceAll(RegExp(r'  +'), ' ').trim();
-
-  return text;
-}
-
-// Split cleaned text into chunks ≤ 4000 chars, breaking at sentence boundaries
-List<String> chunkText(String text, {int maxLen = 4000}) {
-  final List<String> chunks = [];
-  while (text.length > maxLen) {
-    int cutAt = text.lastIndexOf('. ', maxLen);
-    if (cutAt < maxLen ~/ 2) cutAt = text.lastIndexOf(' ', maxLen);
-    if (cutAt <= 0) cutAt = maxLen;
-    chunks.add(text.substring(0, cutAt + 1).trim());
-    text = text.substring(cutAt + 1).trim();
-  }
-  if (text.isNotEmpty) chunks.add(text.trim());
-  return chunks;
-}
-
-// ─────────────────────────────────────────────
-//  Home Page
-// ─────────────────────────────────────────────
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -87,79 +30,119 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  String _fileName = "No file selected";
-  String _displayText = "Extracted text will appear here...";
-  String _selectedLanguage = "en-US";
-  String _selectedSpeed = "Normal";
-  int _totalPages = 0;
 
-  bool _isLoading = false;
-  bool _isPlaying = false;
-  bool _isPaused = false;
+  String fileName = "No file selected";
+  String extractedText = "Extracted text will appear here...";
+  String selectedLanguage = "en-IN";
+  String selectedSpeed = "Normal";
+  int totalPages = 0;
+  bool isLoading = false;
+  bool isPlaying = false;
+  bool isPaused = false;
 
-  final FlutterTts _tts = FlutterTts();
-  List<String> _chunks = [];
-  int _currentChunk = 0;
+  FlutterTts tts = FlutterTts();
+  List<String> chunks = [];
+  int currentChunk = 0;
 
-  static const Map<String, double> _speedMap = {
-    "Slow": 0.35,
-    "Normal": 0.5,
-    "Fast": 0.7,
-  };
-
-  // ── TTS setup ──────────────────────────────
   @override
   void initState() {
     super.initState();
-    _tts.setCompletionHandler(() async {
-      // Advance to next chunk automatically
-      if (_currentChunk < _chunks.length - 1) {
-        _currentChunk++;
-        await _speakChunk(_currentChunk);
+
+    // This makes sure TTS fires the completion handler after each chunk
+    tts.awaitSpeakCompletion(true);
+
+    // When one chunk finishes, automatically play the next one
+    tts.setCompletionHandler(() async {
+      if (currentChunk < chunks.length - 1) {
+        currentChunk++;
+        await speakChunk(currentChunk);
       } else {
-        if (mounted) setState(() { _isPlaying = false; _isPaused = false; });
+        if (mounted) setState(() { isPlaying = false; isPaused = false; });
       }
     });
-    _tts.setErrorHandler((msg) {
-      if (mounted) setState(() { _isPlaying = false; _isPaused = false; });
+
+    tts.setErrorHandler((msg) {
+      if (mounted) setState(() { isPlaying = false; isPaused = false; });
     });
   }
 
   @override
   void dispose() {
-    _tts.stop();
+    tts.stop();
     super.dispose();
   }
 
-  // ── File picking ───────────────────────────
-  Future<void> _selectFile() async {
-    setState(() => _isLoading = true);
+  // Clean the extracted text so it sounds better when read aloud
+  String cleanText(String raw) {
+    String text = raw;
+
+    // Join words that were split across lines by a hyphen
+    text = text.replaceAll(RegExp(r'-\n(?=[a-z])'), '');
+
+    // Replace single line breaks (mid-paragraph) with a space
+    text = text.replaceAll(RegExp(r'(?<!\n)\n(?!\n)'), ' ');
+
+    // Replace double line breaks (paragraph gaps) with a pause marker
+    text = text.replaceAll('\n\n', '.  ');
+
+    // Remove bullet points
+    text = text.replaceAll(RegExp(r'^\s*[•\-–—]\s+', multiLine: true), '. ');
+
+    // Remove extra spaces
+    text = text.replaceAll(RegExp(r'  +'), ' ');
+
+    return text.trim();
+  }
+
+  // Split text into parts of 3000 characters so TTS does not cut off
+  List<String> splitIntoChunks(String text) {
+    List<String> result = [];
+    int maxLength = 3000;
+
+    while (text.length > maxLength) {
+      int cutAt = text.lastIndexOf('. ', maxLength);
+      if (cutAt < 500) cutAt = text.lastIndexOf(' ', maxLength);
+      if (cutAt <= 0) cutAt = maxLength;
+      result.add(text.substring(0, cutAt + 1).trim());
+      text = text.substring(cutAt + 1).trim();
+    }
+
+    if (text.isNotEmpty) result.add(text.trim());
+    return result;
+  }
+
+  // Pick and read a TXT or PDF file
+  Future<void> selectFile() async {
+    setState(() => isLoading = true);
 
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['txt', 'pdf'],
-        withData: true, // ensures bytes are available on all platforms
+        withData: true,
       );
 
-      if (result == null) { setState(() => _isLoading = false); return; }
+      if (result == null) {
+        setState(() => isLoading = false);
+        return;
+      }
 
       final file = result.files.single;
-      final extension = (file.extension ?? '').toLowerCase();
-      String rawContent = '';
-      int pageCount = 0;
+      final ext = (file.extension ?? '').toLowerCase();
+      String content = '';
+      int pages = 0;
 
-      // ── Read TXT ────────────────────────────
-      if (extension == 'txt') {
+      // Read TXT file
+      if (ext == 'txt') {
         if (file.bytes != null) {
-          rawContent = String.fromCharCodes(file.bytes!);
+          content = String.fromCharCodes(file.bytes!);
         } else if (file.path != null) {
-          rawContent = await File(file.path!).readAsString();
+          content = await File(file.path!).readAsString();
         }
       }
 
-      // ── Read PDF ────────────────────────────
-      else if (extension == 'pdf') {
+      // Read PDF file
+      else if (ext == 'pdf') {
         Uint8List? bytes;
         if (file.bytes != null) {
           bytes = file.bytes!;
@@ -168,269 +151,420 @@ class _HomePageState extends State<HomePage> {
         }
 
         if (bytes != null) {
-          final document = PdfDocument(inputBytes: bytes);
-          pageCount = document.pages.count;
-          final extractor = PdfTextExtractor(document);
+          PdfDocument document = PdfDocument(inputBytes: bytes);
+          pages = document.pages.count;
+          PdfTextExtractor extractor = PdfTextExtractor(document);
 
-          // Read ALL pages — no limit
-          for (int i = 0; i < pageCount; i++) {
-            final pageText = extractor.extractText(
+          for (int i = 0; i < pages; i++) {
+            // Extract one page at a time to avoid duplication
+            content += extractor.extractText(
               startPageIndex: i,
-              endPageIndex: i, // one page at a time — prevents duplication
+              endPageIndex: i,
             );
-            rawContent += '$pageText\n\n';
+            content += '\n\n';
           }
+
           document.dispose();
         }
       }
 
-      // ── Clean & chunk ───────────────────────
-      final cleaned = rawContent.isEmpty ? '' : cleanTextForSpeech(rawContent);
+      String cleaned = content.isEmpty ? '' : cleanText(content);
 
       setState(() {
-        _fileName = file.name;
-        _totalPages = pageCount;
-        _displayText = cleaned.isEmpty ? 'No readable text found in this file.' : cleaned;
-        _chunks = cleaned.isEmpty ? [] : chunkText(cleaned);
-        _currentChunk = 0;
-        _isPlaying = false;
-        _isPaused = false;
+        fileName = file.name;
+        totalPages = pages;
+        extractedText = cleaned.isEmpty ? 'No readable text found.' : cleaned;
+        chunks = cleaned.isEmpty ? [] : splitIntoChunks(cleaned);
+        currentChunk = 0;
+        isPlaying = false;
+        isPaused = false;
       });
+
     } catch (e) {
-      setState(() => _displayText = 'Error reading file: $e');
+      setState(() => extractedText = 'Error reading file: $e');
     } finally {
-      setState(() => _isLoading = false);
+      setState(() => isLoading = false);
     }
   }
 
-  // ── TTS controls ───────────────────────────
-  Future<void> _speakChunk(int index) async {
-    if (index >= _chunks.length) return;
-    await _tts.setLanguage(_selectedLanguage);
-    await _tts.setSpeechRate(_speedMap[_selectedSpeed]!);
-    await _tts.setVolume(1.0);
-    await _tts.setPitch(1.05); // slightly above 1.0 feels more natural
-    await _tts.speak(_chunks[index]);
-    if (mounted) setState(() { _isPlaying = true; _isPaused = false; });
+  // Get speech rate based on selected speed
+  double getSpeed() {
+    if (selectedSpeed == 'Slow') return 0.35;
+    if (selectedSpeed == 'Fast') return 0.7;
+    return 0.5; // Normal
   }
 
-  Future<void> _play() async {
-    if (_chunks.isEmpty) return;
-    await _tts.stop();
-    _currentChunk = 0;
-    await _speakChunk(0);
+  // Speak a specific chunk
+  Future<void> speakChunk(int index) async {
+    if (index >= chunks.length) return;
+    setState(() { isPlaying = true; isPaused = false; });
+    await tts.setLanguage(selectedLanguage);
+    await tts.setSpeechRate(getSpeed());
+    await tts.setVolume(1.0);
+    await tts.setPitch(1.0);
+    await tts.speak(chunks[index]);
   }
 
-  Future<void> _pauseResume() async {
-    if (_isPaused) {
-      // Resume from the current chunk
-      await _speakChunk(_currentChunk);
+  // Play from beginning
+  Future<void> playAudio() async {
+    if (chunks.isEmpty) return;
+    await tts.stop();
+    currentChunk = 0;
+    await speakChunk(0);
+  }
+
+  // Pause or resume
+  Future<void> pauseResume() async {
+    if (isPaused) {
+      await speakChunk(currentChunk);
     } else {
-      await _tts.pause();
-      setState(() { _isPlaying = false; _isPaused = true; });
+      await tts.pause();
+      setState(() { isPlaying = false; isPaused = true; });
     }
   }
 
-  Future<void> _stop() async {
-    await _tts.stop();
-    setState(() { _isPlaying = false; _isPaused = false; _currentChunk = 0; });
+  // Stop audio
+  Future<void> stopAudio() async {
+    await tts.stop();
+    setState(() { isPlaying = false; isPaused = false; currentChunk = 0; });
   }
 
-  // ── Build ──────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final hasText = _displayText != "Extracted text will appear here..." &&
-        !_displayText.startsWith('Error') &&
-        _chunks.isNotEmpty;
+    bool hasText = chunks.isNotEmpty;
 
     return Scaffold(
-      // ── App bar ─────────────────────────────
+
+      // App Bar
       appBar: AppBar(
-        title: const Text('Audio Reader'),
+        title: const Text(
+          'Audio Reader',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         centerTitle: true,
-        backgroundColor: colors.primary,
-        foregroundColor: Colors.white,
-        elevation: 2,
+        backgroundColor: Colors.blueAccent,
       ),
 
-      // ── Drawer ──────────────────────────────
+      // Side Drawer
       drawer: Drawer(
-        child: ListView(children: [
-          DrawerHeader(
-            decoration: BoxDecoration(color: colors.primary),
-            child: const Text('Menu',
+        child: ListView(
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.blueAccent),
+              child: Text(
+                'Menu',
                 style: TextStyle(fontSize: 22, color: Colors.white,
-                    fontWeight: FontWeight.bold)),
-          ),
-          ListTile(
-            leading: const Icon(Icons.home),
-            title: const Text('Home'),
-            onTap: () => Navigator.pop(context),
-          ),
-        ]),
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.home),
+              title: const Text('Home'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
       ),
 
-      // ── Body ────────────────────────────────
+      // Body
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
 
-            // ── File info row ──────────────────
+            // Title
+            const Text(
+              'Upload a File',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Supports: Word, PDF, Text, Markdown, Images',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 12),
+
+            // File format icons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Column(children: [
+                  const Icon(Icons.description, size: 30, color: Colors.blue),
+                  const Text('.docx', style: TextStyle(fontSize: 10)),
+                ]),
+                const SizedBox(width: 16),
+                Column(children: [
+                  const Icon(Icons.picture_as_pdf, size: 30, color: Colors.red),
+                  const Text('.pdf', style: TextStyle(fontSize: 10)),
+                ]),
+                const SizedBox(width: 16),
+                Column(children: [
+                  const Icon(Icons.text_snippet, size: 30, color: Colors.green),
+                  const Text('.txt', style: TextStyle(fontSize: 10)),
+                ]),
+                const SizedBox(width: 16),
+                Column(children: [
+                  const Icon(Icons.code, size: 30, color: Colors.purple),
+                  const Text('.md', style: TextStyle(fontSize: 10)),
+                ]),
+                const SizedBox(width: 16),
+                Column(children: [
+                  const Icon(Icons.image, size: 30, color: Colors.orange),
+                  const Text('image', style: TextStyle(fontSize: 10)),
+                ]),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // File name and Select button
             Row(
               children: [
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(_fileName,
-                          style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 15),
-                          overflow: TextOverflow.ellipsis),
-                      if (_totalPages > 0)
-                        Text('$_totalPages pages',
-                            style: TextStyle(
-                                fontSize: 12, color: colors.secondary)),
+                      Text(
+                        fileName,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (totalPages > 0)
+                        Text('$totalPages pages',
+                            style: const TextStyle(fontSize: 12,
+                                color: Colors.grey)),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                FilledButton.icon(
-                  onPressed: _isLoading ? null : _selectFile,
-                  icon: _isLoading
+                ElevatedButton.icon(
+                  onPressed: isLoading ? null : selectFile,
+                  icon: isLoading
                       ? const SizedBox(
                           width: 16, height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
+                          child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.upload_file),
-                  label: Text(_isLoading ? 'Reading...' : 'Select File'),
+                  label: Text(isLoading ? 'Reading...' : 'Select File'),
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      foregroundColor: Colors.white),
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
 
-            // ── Settings row ───────────────────
-            Row(
-              children: [
-                // Language
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedLanguage,
-                    decoration: const InputDecoration(
-                      labelText: 'Language',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'en-US', child: Text('English (US)')),
-                      DropdownMenuItem(value: 'en-GB', child: Text('English (UK)')),
-                      DropdownMenuItem(value: 'hi-IN', child: Text('Hindi')),
-                    ],
-                    onChanged: (v) => setState(() => _selectedLanguage = v!),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Speed
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedSpeed,
-                    decoration: const InputDecoration(
-                      labelText: 'Speed',
-                      border: OutlineInputBorder(),
-                      contentPadding:
-                          EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Slow', child: Text('Slow')),
-                      DropdownMenuItem(value: 'Normal', child: Text('Normal')),
-                      DropdownMenuItem(value: 'Fast', child: Text('Fast')),
-                    ],
-                    onChanged: (v) => setState(() => _selectedSpeed = v!),
-                  ),
-                ),
+            // Language dropdown
+            DropdownButtonFormField<String>(
+              initialValue: selectedLanguage,
+              decoration: const InputDecoration(
+                labelText: 'Language',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'en-IN', child: Text('English (India)')),
+                DropdownMenuItem(value: 'hi-IN', child: Text('Hindi')),
+                DropdownMenuItem(value: 'en-US', child: Text('English (US)')),
+                DropdownMenuItem(value: 'en-GB', child: Text('English (UK)')),
               ],
+              onChanged: (value) => setState(() => selectedLanguage = value!),
             ),
-
-            const SizedBox(height: 12),
-
-            // ── Chunk progress ─────────────────
-            if (hasText && _chunks.length > 1)
-              Text(
-                'Section ${_currentChunk + 1} of ${_chunks.length}',
-                style: TextStyle(fontSize: 12, color: colors.secondary),
-                textAlign: TextAlign.center,
-              ),
-
-            if (hasText && _chunks.length > 1) const SizedBox(height: 4),
-
-            if (hasText && _chunks.length > 1)
-              LinearProgressIndicator(
-                value: (_currentChunk + 1) / _chunks.length,
-                minHeight: 4,
-                borderRadius: BorderRadius.circular(4),
-              ),
-
-            const SizedBox(height: 12),
-
-            // ── Extracted text area ────────────
-            Expanded(
-              child: Card(
-                elevation: 1,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      _displayText,
-                      style: const TextStyle(fontSize: 14.5, height: 1.6),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
             const SizedBox(height: 14),
 
-            // ── Playback controls ──────────────
+            // Speed selection - three circular buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Play
-                FilledButton.icon(
-                  onPressed: hasText && !_isPlaying ? _play : null,
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Play'),
-                  style: FilledButton.styleFrom(backgroundColor: colors.primary),
+                // Slow button
+                GestureDetector(
+                  onTap: () => setState(() => selectedSpeed = 'Slow'),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: selectedSpeed == 'Slow'
+                              ? Colors.blueAccent
+                              : Colors.white,
+                          border: Border.all(
+                            color: selectedSpeed == 'Slow'
+                                ? Colors.blueAccent
+                                : Colors.grey,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.speed,
+                          color: selectedSpeed == 'Slow'
+                              ? Colors.white
+                              : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Slow',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: selectedSpeed == 'Slow'
+                                ? Colors.blueAccent
+                                : Colors.grey,
+                            fontWeight: selectedSpeed == 'Slow'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          )),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 20),
 
-                // Pause / Resume
-                FilledButton.icon(
-                  onPressed: (_isPlaying || _isPaused) ? _pauseResume : null,
-                  icon: Icon(_isPaused ? Icons.play_circle_outline : Icons.pause),
-                  label: Text(_isPaused ? 'Resume' : 'Pause'),
-                  style: FilledButton.styleFrom(
-                      backgroundColor: Colors.orange.shade700),
+                // Normal button
+                GestureDetector(
+                  onTap: () => setState(() => selectedSpeed = 'Normal'),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: selectedSpeed == 'Normal'
+                              ? Colors.blueAccent
+                              : Colors.white,
+                          border: Border.all(
+                            color: selectedSpeed == 'Normal'
+                                ? Colors.blueAccent
+                                : Colors.grey,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.play_circle_outline,
+                          color: selectedSpeed == 'Normal'
+                              ? Colors.white
+                              : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Normal',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: selectedSpeed == 'Normal'
+                                ? Colors.blueAccent
+                                : Colors.grey,
+                            fontWeight: selectedSpeed == 'Normal'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          )),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 20),
 
-                // Stop
-                FilledButton.icon(
-                  onPressed: (_isPlaying || _isPaused) ? _stop : null,
-                  icon: const Icon(Icons.stop),
-                  label: const Text('Stop'),
-                  style: FilledButton.styleFrom(
-                      backgroundColor: Colors.red.shade600),
+                // Fast button
+                GestureDetector(
+                  onTap: () => setState(() => selectedSpeed = 'Fast'),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 54,
+                        height: 54,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: selectedSpeed == 'Fast'
+                              ? Colors.blueAccent
+                              : Colors.white,
+                          border: Border.all(
+                            color: selectedSpeed == 'Fast'
+                                ? Colors.blueAccent
+                                : Colors.grey,
+                            width: 2,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.fast_forward,
+                          color: selectedSpeed == 'Fast'
+                              ? Colors.white
+                              : Colors.grey,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text('Fast',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: selectedSpeed == 'Fast'
+                                ? Colors.blueAccent
+                                : Colors.grey,
+                            fontWeight: selectedSpeed == 'Fast'
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          )),
+                    ],
+                  ),
                 ),
               ],
             ),
+            const SizedBox(height: 14),
 
-            const SizedBox(height: 6),
+            // Extracted text area
+            Expanded(
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: SingleChildScrollView(
+                    child: Text(
+                      extractedText,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Play, Pause, Stop buttons
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+
+                // Play button
+                ElevatedButton.icon(
+                  onPressed: hasText && !isPlaying ? playAudio : null,
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Play'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Pause / Resume button
+                ElevatedButton.icon(
+                  onPressed: (isPlaying || isPaused) ? pauseResume : null,
+                  icon: Icon(isPaused ? Icons.play_circle_outline : Icons.pause),
+                  label: Text(isPaused ? 'Resume' : 'Pause'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.orange,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 10),
+
+                // Stop button
+                ElevatedButton.icon(
+                  onPressed: (isPlaying || isPaused) ? stopAudio : null,
+                  icon: const Icon(Icons.stop),
+                  label: const Text('Stop'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+
+              ],
+            ),
+            const SizedBox(height: 8),
+
           ],
         ),
       ),
