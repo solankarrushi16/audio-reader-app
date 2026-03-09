@@ -24,14 +24,25 @@ android {
         applicationId = "com.example.audio_reader_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion  // Required for Google ML Kit
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true  // Required for ML Kit
     }
 
     buildTypes {
         release {
+            // Disable code shrinking/obfuscation for ML Kit to avoid missing class errors.
+            isMinifyEnabled = false
+            isShrinkResources = false
+
+            // Keep ProGuard config here if you later enable minify.
+            proguardFiles(
+                getDefaultProguardFile("proguard-android.txt"),
+                "proguard-rules.pro",
+            )
+
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
