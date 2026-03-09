@@ -628,13 +628,17 @@ class _HomePageState extends State<HomePage> {
     setState(() => isDownloading = true);
 
     try {
-      final Directory? extDir = await getExternalStorageDirectory();
-      final String dirPath = extDir?.path ?? '/storage/emulated/0/Download';
-      final String safeName = fileName
+      // Determine base name without extension
+      String baseName = fileName;
+      if (baseName.contains('.')) {
+        baseName = baseName.substring(0, baseName.lastIndexOf('.'));
+      }
+      
+      final String safeName = baseName
           .replaceAll(RegExp(r'[^\w\s-]'), '')
-          .replaceAll(RegExp(r'\s+'), '_')
-          .toLowerCase();
-      final String savePath = '$dirPath/ReadAloud_$safeName.wav';
+          .replaceAll(RegExp(r'\s+'), '_');
+          
+      final String newFileName = '$safeName.mp3';
 
       await tts.setLanguage(selectedLanguage);
       await tts.setSpeechRate(getSpeed());
@@ -642,13 +646,15 @@ class _HomePageState extends State<HomePage> {
       await tts.setPitch(1.0);
 
       final String fullText = chunks.join(' ');
-      final result = await tts.synthesizeToFile(fullText, savePath);
+      // flutter_tts synthesizeToFile expects ONLY the file name on Android and iOS.
+      // It auto-places it in the external files directory.
+      final result = await tts.synthesizeToFile(fullText, newFileName);
 
       if (!mounted) return;
       if (result == 1) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Saved as ReadAloud_$safeName.wav'),
+            content: Text('Saved as $newFileName'),
             duration: const Duration(seconds: 4),
             action: SnackBarAction(
               label: 'Downloads',
