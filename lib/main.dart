@@ -69,20 +69,22 @@ class _HomePageState extends State<HomePage> {
         currentChunk++;
         await speakChunk(currentChunk);
       } else {
-        if (mounted)
+        if (mounted) {
           setState(() {
             isPlaying = false;
             isPaused = false;
           });
+        }
       }
     });
 
     tts.setErrorHandler((msg) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           isPlaying = false;
           isPaused = false;
         });
+      }
     });
 
     // Check for a saved bookmark to resume
@@ -223,7 +225,7 @@ class _HomePageState extends State<HomePage> {
   Future<String> extractDocx(String path) async {
     try {
       final bytes = await File(path).readAsBytes();
-      final text = await docxToText(bytes);
+      final text = docxToText(bytes);
       return text;
     } catch (e) {
       return 'Error reading Word file: $e';
@@ -330,14 +332,12 @@ class _HomePageState extends State<HomePage> {
     if (chunks.isEmpty) return;
     await tts.stop();
     currentChunk = 0;
-    await speakText('Starting reading.');
     await speakChunk(currentChunk);
     await saveBookmark();
   }
 
   Future<void> pauseResume() async {
     if (isPaused) {
-      await speakText('Resuming.');
       await speakChunk(currentChunk);
       await saveBookmark();
     } else {
@@ -347,7 +347,6 @@ class _HomePageState extends State<HomePage> {
         isPaused = true;
       });
       await saveBookmark();
-      await speakText('Paused. You can resume.');
     }
   }
 
@@ -567,7 +566,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const SizedBox(height: 4),
             const Text(
-              'Supports: Word, PDF, Text, Markdown, Images',
+              'Supports: Word, PDF, Text, Images',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
             const SizedBox(height: 12),
@@ -601,13 +600,6 @@ class _HomePageState extends State<HomePage> {
                       color: Colors.green,
                     ),
                     const Text('.txt', style: TextStyle(fontSize: 10)),
-                  ],
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  children: [
-                    const Icon(Icons.code, size: 30, color: Colors.purple),
-                    const Text('.md', style: TextStyle(fontSize: 10)),
                   ],
                 ),
                 const SizedBox(width: 16),
